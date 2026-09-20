@@ -1,0 +1,7 @@
+# Local development only. Production values belong in Cloudflare secrets/Access.
+CREDENTIALS_KEY=replace-with-32-random-bytes-encoded-as-base64
+DEV_USER_EMAIL=you@example.com
+# Production-only Cloudflare Access values should be configured with
+# `wrangler secret put`; local development uses DEV_USER_EMAIL instead.
+ACCESS_TEAM_DOMAIN=https://your-team.cloudflareaccess.com
+ACCESS_AUD=your-access-application-audience-tag
