@@ -9,6 +9,7 @@ import type {
   TrashResult,
   UnsubscribeMethod,
 } from "@/lib/types";
+import { chunksOf } from "@/lib/utils";
 
 interface ConnectionViewRow {
   username: string;
@@ -51,12 +52,10 @@ const ACTIVITY_PAGE_SIZE = 50;
 const D1_MAX_BOUND_PARAMETERS = 100;
 const MESSAGE_DELETE_CHUNK_SIZE = D1_MAX_BOUND_PARAMETERS - 1;
 
-function chunksOf<T>(items: T[], size: number): T[][] {
-  const chunks: T[][] = [];
-  for (let index = 0; index < items.length; index += size) {
-    chunks.push(items.slice(index, index + size));
-  }
-  return chunks;
+function fastmailMessageUrl(messageId: string | null): string | null {
+  return messageId
+    ? `https://app.fastmail.com/mail/search:msgid:${encodeURIComponent(messageId)}`
+    : null;
 }
 
 function toActivityRecord(row: ActivityRow): ActivityRecord {
@@ -167,40 +166,6 @@ export async function completeActivity(
     .run();
 }
 
-export async function recordActivity(input: {
-  userEmail: string;
-  eventType: string;
-  status: string;
-  subjectId?: string;
-  subject?: string;
-  detail: string;
-  correlationId?: string;
-  metadata?: Record<string, unknown>;
-}): Promise<void> {
-  const now = new Date().toISOString();
-  await getDb()
-    .prepare(
-      `INSERT INTO activity_events
-        (id, user_email, event_type, status, subject_id, subject_label, detail,
-         metadata_json, correlation_id, created_at, completed_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    )
-    .bind(
-      crypto.randomUUID(),
-      input.userEmail,
-      input.eventType,
-      input.status,
-      input.subjectId ?? null,
-      input.subject ?? null,
-      input.detail,
-      JSON.stringify(input.metadata ?? {}),
-      input.correlationId ?? null,
-      now,
-      now,
-    )
-    .run();
-}
-
 interface MessageRow {
   id: string;
   subscription_id: string;
@@ -271,9 +236,7 @@ export async function getBootstrap(
       latestSubject: row.latest_subject,
       latestReceivedAt: row.latest_received_at,
       latestMessageId: row.latest_message_id,
-      fastmailUrl: row.latest_message_id
-        ? `https://app.fastmail.com/mail/search:msgid:${encodeURIComponent(row.latest_message_id)}`
-        : null,
+      fastmailUrl: fastmailMessageUrl(row.latest_message_id),
       status: row.status,
     })),
     messages: messageRows.results.map((row) => ({
@@ -282,9 +245,7 @@ export async function getBootstrap(
       senderAddress: row.sender_address,
       subject: row.subject,
       receivedAt: row.received_at,
-      fastmailUrl: row.message_id
-        ? `https://app.fastmail.com/mail/search:msgid:${encodeURIComponent(row.message_id)}`
-        : null,
+      fastmailUrl: fastmailMessageUrl(row.message_id),
     } satisfies InboxMessage)),
     activities: activityPage.activities,
     activityTotal: activityPage.total,
@@ -372,9 +333,7 @@ export async function getSubscriptionTargets(
             `${userEmail}:unsubscribe:${row.id}`,
           )
         : null,
-      fastmailUrl: row.latest_message_id
-        ? `https://app.fastmail.com/mail/search:msgid:${encodeURIComponent(row.latest_message_id)}`
-        : null,
+      fastmailUrl: fastmailMessageUrl(row.latest_message_id),
     })),
   );
 }

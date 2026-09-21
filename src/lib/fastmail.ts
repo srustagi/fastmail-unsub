@@ -2,6 +2,7 @@ import { decryptSecret, encryptSecret, stableId } from "@/lib/crypto";
 import { getDb } from "@/lib/runtime";
 import { recordTrashResults } from "@/lib/repository";
 import type { TrashResult, UnsubscribeMethod } from "@/lib/types";
+import { chunksOf } from "@/lib/utils";
 
 const SESSION_URL = "https://api.fastmail.com/jmap/session";
 const MAIL_CAPABILITY = "urn:ietf:params:jmap:mail";
@@ -210,14 +211,6 @@ async function jmapQueryEmailPage(
   const query = queryResponse[1] as unknown as { ids: string[]; total: number };
   const emailResult = getResponse[1] as unknown as { list: JmapEmail[] };
   return { ids: query.ids, total: query.total, emails: emailResult.list };
-}
-
-function chunksOf<T>(items: T[], size: number): T[][] {
-  const chunks: T[][] = [];
-  for (let index = 0; index < items.length; index += size) {
-    chunks.push(items.slice(index, index + size));
-  }
-  return chunks;
 }
 
 function senderDomain(address: string): string {

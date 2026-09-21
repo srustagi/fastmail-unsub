@@ -1,10 +1,10 @@
 "use client";
 
-import { CheckCircle2, ChevronDown, ChevronRight, ExternalLink, MailX, MoreHorizontal, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronRight, ExternalLink, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
+import { OverflowActionMenu } from "@/components/app/overflow-action-menu";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import type { InboxMessage, Subscription } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -78,16 +78,20 @@ export function SubscriptionCompactList({ subscriptions, messages, selected, bus
               </div>
               <div className="flex items-center gap-1 ps-7 md:justify-end md:ps-0">
                 <Button size="sm" variant={isAutomatic ? "default" : "outline"} disabled={busy} onClick={() => onUnsubscribe(subscription.id)}>{isAutomatic ? "Unsubscribe" : "Review"}</Button>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild><Button size="icon-sm" variant="ghost" aria-label={`More actions for ${subscription.displayName}`}><MoreHorizontal className="size-4" /></Button></DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    {subscription.fastmailUrl ? <DropdownMenuItem asChild><a href={subscription.fastmailUrl} target="_blank" rel="noreferrer"><ExternalLink className="size-4" /> Open in Fastmail</a></DropdownMenuItem> : null}
-                    <DropdownMenuItem onSelect={() => onIgnore(subscription.id, subscription.status !== "ignored")}><CheckCircle2 className="size-4" />{subscription.status === "ignored" ? "Return to review" : "Keep sender"}</DropdownMenuItem>
-                    <DropdownMenuItem onSelect={() => onTrash(subscription.id)}><Trash2 className="size-4" /> Move messages to Trash</DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem variant="destructive" onSelect={() => onCombined(subscription.id)}><MailX className="size-4" /> Unsubscribe and move to Trash</DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                <OverflowActionMenu
+                  label={subscription.displayName}
+                  fastmailUrl={subscription.fastmailUrl}
+                  onIgnore={() =>
+                    onIgnore(subscription.id, subscription.status !== "ignored")
+                  }
+                  ignoreLabel={
+                    subscription.status === "ignored" ? "Return to review" : "Keep sender"
+                  }
+                  onTrash={() => onTrash(subscription.id)}
+                  trashLabel="Move messages to Trash"
+                  onCombined={() => onCombined(subscription.id)}
+                  showCombinedIcon
+                />
               </div>
             </div>
             {isExpanded ? (

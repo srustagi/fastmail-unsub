@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title desc">
+  <title id="title">Unsubscribe</title>
+  <desc id="desc">An inbox tray with an unsubscribe mark</desc>
+  <defs>
+    <linearGradient id="background" x1="8" y1="4" x2="56" y2="60" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#5d7df5"/>
+      <stop offset="1" stop-color="#304dc6"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="16" fill="url(#background)"/>
+  <path d="M14 31.5 19.5 18h25L50 31.5v14A4.5 4.5 0 0 1 45.5 50h-27a4.5 4.5 0 0 1-4.5-4.5z" fill="#fff" fill-opacity=".96"/>
+  <path d="M14.5 32h9l3.5 5h10l3.5-5h9" fill="none" stroke="#304dc6" stroke-width="4" stroke-linejoin="round"/>
+  <path d="m37.5 20.5 10 10m0-10-10 10" fill="none" stroke="#e55b67" stroke-width="4" stroke-linecap="round"/>
+</svg>

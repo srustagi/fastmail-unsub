@@ -2,10 +2,8 @@
 
 import {
   Building2,
-  CheckCircle2,
   ExternalLink,
   MailX,
-  MoreHorizontal,
   ShieldCheck,
   Trash2,
 } from "lucide-react";
@@ -13,13 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { OverflowActionMenu } from "@/components/app/overflow-action-menu";
 import type { Subscription } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -92,49 +84,22 @@ export function SubscriptionCard({
                     {subscription.senderAddress}
                   </p>
                 </div>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="-me-2 -mt-2 shrink-0"
-                      aria-label={`More actions for ${subscription.displayName}`}
-                    >
-                      <MoreHorizontal className="size-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    {subscription.fastmailUrl ? (
-                      <DropdownMenuItem asChild>
-                        <a
-                          href={subscription.fastmailUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          <ExternalLink className="size-4" />
-                          Open in Fastmail
-                        </a>
-                      </DropdownMenuItem>
-                    ) : null}
-                    <DropdownMenuItem
-                      onSelect={() =>
-                        onIgnore(subscription.id, subscription.status !== "ignored")
-                      }
-                    >
-                      <CheckCircle2 className="size-4" />
-                      {subscription.status === "ignored" ? "Return to review" : "Keep sender"}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onSelect={() => onTrash(subscription.id)}>
-                      <Trash2 className="size-4" />
-                      Move Inbox mail to Trash
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem variant="destructive" onSelect={() => onCombined(subscription.id)}>
-                      <MailX className="size-4" />
-                      Unsubscribe and move to Trash
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                <OverflowActionMenu
+                  label={subscription.displayName}
+                  fastmailUrl={subscription.fastmailUrl}
+                  onIgnore={() =>
+                    onIgnore(subscription.id, subscription.status !== "ignored")
+                  }
+                  ignoreLabel={
+                    subscription.status === "ignored" ? "Return to review" : "Keep sender"
+                  }
+                  onTrash={() => onTrash(subscription.id)}
+                  trashLabel="Move Inbox mail to Trash"
+                  onCombined={() => onCombined(subscription.id)}
+                  triggerSize="icon"
+                  triggerClassName="-me-2 -mt-2 shrink-0"
+                  showCombinedIcon
+                />
               </div>
 
               <div className="mt-3 flex flex-wrap items-center gap-1.5">

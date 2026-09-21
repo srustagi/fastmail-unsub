@@ -8,25 +8,24 @@ import {
   CircleAlert,
   EyeOff,
   ExternalLink,
-  Inbox,
   LoaderCircle,
   Link2,
   LockKeyhole,
-  MailX,
   RefreshCw,
   Search,
-  Settings,
   SlidersHorizontal,
   Trash2,
   XCircle,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { AccountMenu } from "@/components/app/account-menu";
 import { ConnectionPanel } from "@/components/app/connection-panel";
+import {
+  DashboardNavigation,
+  type DashboardNavItem,
+} from "@/components/app/dashboard-navigation";
 import { MessageCompactList } from "@/components/app/message-compact-list";
 import { SubscriptionCard } from "@/components/app/subscription-card";
 import { SubscriptionCompactList } from "@/components/app/subscription-compact-list";
-import { ThemeToggle } from "@/components/app/theme-toggle";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -69,7 +68,6 @@ import {
 } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type {
   ActivityPage,
   BootstrapResponse,
@@ -78,7 +76,7 @@ import type {
 } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-type NavItem = "review" | "activity" | "settings";
+type NavItem = DashboardNavItem;
 type ReviewList = "review" | "ignored";
 type MethodFilter = "all" | "automatic" | "manual";
 type SortMode = "recent" | "count" | "name";
@@ -96,12 +94,6 @@ class ApiRequestError extends Error {
     this.name = "ApiRequestError";
   }
 }
-
-const navItems: { id: NavItem; label: string; icon: typeof Inbox }[] = [
-  { id: "review", label: "Review", icon: Inbox },
-  { id: "activity", label: "Activity", icon: Activity },
-  { id: "settings", label: "Settings", icon: Settings },
-];
 
 async function api<T>(path: string, options?: RequestInit): Promise<T> {
   const response = await fetch(path, {
@@ -313,6 +305,22 @@ export function Dashboard() {
     setPendingCombined(selection);
   }
 
+  async function runBusyAction<T>(
+    action: () => Promise<T>,
+    fallback: string,
+  ): Promise<T | undefined> {
+    setBusy(true);
+    setError(null);
+    try {
+      return await action();
+    } catch (actionError) {
+      setError(actionError instanceof Error ? actionError.message : fallback);
+      return undefined;
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function scan() {
     setScanning(true);
     setError(null);
@@ -328,111 +336,65 @@ export function Dashboard() {
   }
 
   async function connect(token: string) {
-    setBusy(true);
-    setError(null);
-    try {
+    await runBusyAction(async () => {
       await api("/api/connection", {
         method: "POST",
         body: JSON.stringify({ token }),
       });
       await refresh();
       setActiveNav("review");
-    } catch (connectionError) {
-      setError(
-        connectionError instanceof Error
-          ? connectionError.message
-          : "Fastmail connection failed.",
-      );
-    } finally {
-      setBusy(false);
-    }
+    }, "Fastmail connection failed.");
   }
 
   async function disconnect() {
-    setBusy(true);
-    setError(null);
-    try {
+    await runBusyAction(async () => {
       await api("/api/connection", { method: "DELETE" });
       await refresh();
       setSelected(new Set());
-    } catch (disconnectError) {
-      setError(
-        disconnectError instanceof Error
-          ? disconnectError.message
-          : "Could not disconnect Fastmail.",
-      );
-    } finally {
-      setBusy(false);
-    }
+    }, "Could not disconnect Fastmail.");
   }
 
   async function ignore(id: string, ignored: boolean) {
-    setBusy(true);
-    setError(null);
-    try {
+    await runBusyAction(async () => {
       await api("/api/ignore", {
         method: "POST",
         body: JSON.stringify({ subscriptionId: id, ignored }),
       });
       await refresh();
       setSelected(new Set());
-    } catch (ignoreError) {
-      setError(ignoreError instanceof Error ? ignoreError.message : "Could not update sender.");
-    } finally {
-      setBusy(false);
-    }
+    }, "Could not update sender.");
   }
 
   async function unsubscribe() {
     const ids = pendingIds;
     setPendingIds([]);
-    setBusy(true);
-    setError(null);
-    try {
+    await runBusyAction(async () => {
       const payload = await api<{ results: UnsubscribeResult[] }>("/api/unsubscribe", {
-        method: "POST",
-        body: JSON.stringify({ subscriptionIds: ids }),
-      });
+          method: "POST",
+          body: JSON.stringify({ subscriptionIds: ids }),
+        });
       setResults(payload.results);
       setTrashResults([]);
       setResultsOpen(true);
       setSelected(new Set());
       await refresh();
-    } catch (unsubscribeError) {
-      setError(
-        unsubscribeError instanceof Error
-          ? unsubscribeError.message
-          : "Unsubscribe request failed.",
-      );
-    } finally {
-      setBusy(false);
-    }
+    }, "Unsubscribe request failed.");
   }
 
   async function moveToTrash() {
     const selection = pendingTrash;
     setPendingTrash(emptyActionSelection);
-    setBusy(true);
-    setError(null);
-    try {
+    await runBusyAction(async () => {
       const payload = await api<{ results: TrashResult[] }>("/api/trash", {
-        method: "POST",
-        body: JSON.stringify(selection),
-      });
+          method: "POST",
+          body: JSON.stringify(selection),
+        });
       setResults([]);
       setTrashResults(payload.results);
       setResultsOpen(true);
       setSelected(new Set());
       await refresh();
-    } catch (trashError) {
-      setError(
-        trashError instanceof Error
-          ? trashError.message
-          : "Could not move Inbox messages to Trash.",
-      );
-    } finally {
-      setBusy(false);
-    }
+    }, "Could not move Inbox messages to Trash.");
   }
 
   async function unsubscribeAndDelete() {
@@ -446,9 +408,7 @@ export function Dashboard() {
           .filter((id): id is string => Boolean(id)),
       ]),
     ];
-    setBusy(true);
-    setError(null);
-    try {
+    await runBusyAction(async () => {
       const operationId = crypto.randomUUID();
       const unsubscribePayload = await api<{ results: UnsubscribeResult[] }>("/api/unsubscribe", {
         method: "POST",
@@ -463,11 +423,7 @@ export function Dashboard() {
       setResultsOpen(true);
       setSelected(new Set());
       await refresh();
-    } catch (combinedError) {
-      setError(combinedError instanceof Error ? combinedError.message : "Unsubscribe and delete failed.");
-    } finally {
-      setBusy(false);
-    }
+    }, "Unsubscribe and delete failed.");
   }
 
   async function loadMoreActivity() {
@@ -519,56 +475,12 @@ export function Dashboard() {
   return (
     <div className="min-h-screen bg-background pb-24 md:pb-0">
       <div className="mx-auto flex min-h-screen max-w-[1480px]">
-        <aside className="sticky top-0 hidden h-screen w-16 shrink-0 flex-col items-center border-e bg-sidebar py-4 md:flex">
-          <div className="flex size-9 items-center justify-center rounded-md bg-primary text-primary-foreground" aria-label="Unsubscribe">
-              <MailX className="size-5" />
-          </div>
-          <nav className="mt-6 flex w-full flex-col items-center gap-1" aria-label="Primary navigation">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              return (
-                <Tooltip key={item.id}>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      aria-label={item.label}
-                      className={cn("mx-auto rounded-md text-muted-foreground", activeNav === item.id && "bg-sidebar-accent text-sidebar-accent-foreground shadow-xs")}
-                      onClick={() => setActiveNav(item.id)}
-                    >
-                      <Icon className="size-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="right" sideOffset={8}>{item.label}</TooltipContent>
-                </Tooltip>
-              );
-            })}
-          </nav>
-          <div className="mt-auto flex flex-col items-center gap-1 border-t pt-3">
-            <Tooltip>
-              <TooltipTrigger asChild><ThemeToggle /></TooltipTrigger>
-              <TooltipContent side="right" sideOffset={8}>Change theme</TooltipContent>
-            </Tooltip>
-            <AccountMenu userEmail={data?.userEmail ?? "Authentication required"} />
-          </div>
-        </aside>
-
+        <DashboardNavigation
+          activeNav={activeNav}
+          userEmail={data?.userEmail ?? "Authentication required"}
+          onNavigate={setActiveNav}
+        />
         <main className="min-w-0 flex-1">
-          <header className="sticky top-0 z-20 border-b bg-background/95 px-4 py-3 backdrop-blur md:hidden">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="flex size-8 items-center justify-center rounded-md bg-primary text-primary-foreground">
-                  <MailX className="size-4" />
-                </div>
-                <span className="font-semibold">Unsubscribe</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <ThemeToggle />
-                <AccountMenu userEmail={data?.userEmail ?? "Authentication required"} />
-              </div>
-            </div>
-          </header>
-
           <div className="mx-auto max-w-6xl px-4 py-5 sm:px-7 sm:py-7 lg:px-10 lg:py-8">
             {error ? (
               <div role="alert" className="mb-6 flex items-start gap-3 rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm">
@@ -886,18 +798,6 @@ export function Dashboard() {
           </div>
         </div>
       ) : null}
-
-      <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-3 border-t bg-background/95 p-2 backdrop-blur md:hidden" aria-label="Mobile navigation">
-        {navItems.map((item) => {
-          const Icon = item.icon;
-          return (
-            <Button key={item.id} variant="ghost" className={cn("h-14 flex-col gap-1 rounded-xl text-xs", activeNav === item.id && "bg-primary/10 text-primary")} onClick={() => setActiveNav(item.id)}>
-              <Icon className="size-4" />
-              {item.label}
-            </Button>
-          );
-        })}
-      </nav>
 
       <AlertDialog open={pendingIds.length > 0} onOpenChange={(open) => !open && setPendingIds([])}>
         <AlertDialogContent>

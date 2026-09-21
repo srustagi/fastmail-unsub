@@ -1,9 +1,8 @@
 "use client";
 
-import { CheckCircle2, ExternalLink, MoreHorizontal, Trash2 } from "lucide-react";
+import { OverflowActionMenu } from "@/components/app/overflow-action-menu";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import type { InboxMessage, Subscription } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -70,16 +69,17 @@ export function MessageCompactList({
             </div>
             <div className="flex items-center gap-1 ps-8 sm:justify-end sm:ps-0">
               <Button size="sm" variant={isAutomatic ? "default" : "outline"} disabled={busy} onClick={() => onUnsubscribe(subscription.id)}>{isAutomatic ? "Unsubscribe" : "Review"}</Button>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild><Button size="icon-sm" variant="ghost" aria-label={`More actions for ${message.subject || "message"}`}><MoreHorizontal className="size-4" /></Button></DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  {message.fastmailUrl ? <DropdownMenuItem asChild><a href={message.fastmailUrl} target="_blank" rel="noreferrer"><ExternalLink className="size-4" /> Open in Fastmail</a></DropdownMenuItem> : null}
-                  <DropdownMenuItem onSelect={() => onIgnore(subscription.id, subscription.status !== "ignored")}><CheckCircle2 className="size-4" /> Keep sender</DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => onTrash(message.id)}><Trash2 className="size-4" /> Move to Trash</DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem variant="destructive" onSelect={() => onCombined(subscription.id, message.id)}>Unsubscribe and move to Trash</DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <OverflowActionMenu
+                label={message.subject || "message"}
+                fastmailUrl={message.fastmailUrl}
+                onIgnore={() =>
+                  onIgnore(subscription.id, subscription.status !== "ignored")
+                }
+                ignoreLabel="Keep sender"
+                onTrash={() => onTrash(message.id)}
+                trashLabel="Move to Trash"
+                onCombined={() => onCombined(subscription.id, message.id)}
+              />
             </div>
           </div>
         );
